@@ -14,6 +14,7 @@ let amt='overwrite'
 const port = process.env.PORT || 3000
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname + '/index.html'))
+  console.log(config);
 })
 
 app.listen(port, () => {
@@ -34,7 +35,8 @@ app.post('/paynow', [parseUrl, parseJson], (req, res) => {
       params['ORDER_ID'] = 'TEST_' + new Date().getTime();
       params['CUST_ID'] = 'customer_001';
       params['TXN_AMOUNT'] = req.body.amount.toString();
-      params['CALLBACK_URL'] = 'http://localhost:3000/callback';
+      params['CALLBACK_URL'] = 'https://abd-payment.herokuapp.com/callback'
+       //'http://localhost:3000/callback';
       params['EMAIL'] = req.body.email;
       params['MOBILE_NO'] = req.body.phone.toString();
       email=req.body.email;
