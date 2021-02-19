@@ -24,7 +24,9 @@ app.get('/payment.html', (req, res) => {
     res.sendFile(path.join(__dirname + '/payment.html'))
   })
 app.post('/paynow', [parseUrl, parseJson], (req, res) => {
-    if (!req.body.amount || !req.body.email || !req.body.phone) {
+  if(!config.PaytmConfig.mid){ 
+            console.log("Internal server wala error")    
+  }else if (!req.body.amount || !req.body.email || !req.body.phone) {
       res.status(400).send('<h1>payment failed</h1> <a href="./index.html">Back to Home...</a>')
     } else {
       var params = {};
@@ -116,7 +118,7 @@ app.post('/paynow', [parseUrl, parseJson], (req, res) => {
   
              var _result = JSON.parse(response);
                if(_result.STATUS == 'TXN_SUCCESS') {
-                   res.send('<h1>Payment Successful</h1> <a href="./index.html">Back to Home...</a>')
+                   res.send('<h1>Payment Successful</h1> <a href="https://abd-payment.herokuapp.com/">Back to Home...</a>')
                    console.log(email)
                    let transporter = nodemailer.createTransport({
                     host: 'smtp.gmail.com',
