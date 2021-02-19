@@ -8,10 +8,14 @@ const parseUrl = express.urlencoded({ extended: false })
 const parseJson = express.urlencoded({ extended: false })
 const checksum_lib = require('./paytm/checksum')
 const config = require('./paytm/config')
+var nodemailer = require('nodemailer')
+let email='overwrite@gmail.com'
+let amt='overwrite'
+const port = process.env.PORT || 3000
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname + '/index.html'))
 })
-const port = 3000
+
 app.listen(port, () => {
   console.log(`Server listening on port ${port}` );
 })
@@ -20,7 +24,7 @@ app.get('/payment.html', (req, res) => {
   })
 app.post('/paynow', [parseUrl, parseJson], (req, res) => {
     if (!req.body.amount || !req.body.email || !req.body.phone) {
-      res.status(400).send('Payment failed')
+      res.status(400).send('<h1>payment failed</h1> <a href="./index.html">Back to Home...</a>')
     } else {
       var params = {};
       params['MID'] = config.PaytmConfig.mid;
@@ -33,8 +37,8 @@ app.post('/paynow', [parseUrl, parseJson], (req, res) => {
       params['CALLBACK_URL'] = 'http://localhost:3000/callback';
       params['EMAIL'] = req.body.email;
       params['MOBILE_NO'] = req.body.phone.toString();
-  
-  
+      email=req.body.email;
+      amt=req.body.amount.toString();
       checksum_lib.genchecksum(params, config.PaytmConfig.key, function (err, checksum) {
         var txn_url = "https://securegw-stage.paytm.in/theia/processTransaction"; // for staging
         // var txn_url = "https://securegw.paytm.in/theia/processTransaction"; // for production
@@ -50,10 +54,11 @@ app.post('/paynow', [parseUrl, parseJson], (req, res) => {
         res.end();
       });
     }
+    //return res.redirect('/'); 
   })
   app.post('/callback', (req, res) => {
     var body = '';
-    req.send('<h1>Thank You<h1>')
+    //res.se('<h1>Thank You<h1>')
     req.on('data', function (data) {
        body += data;
     });
@@ -64,8 +69,11 @@ app.post('/paynow', [parseUrl, parseJson], (req, res) => {
   
        // received params in callback
        console.log('Callback Response: ', post_data, "\n");
-  
-  
+       var oid=post_data.ORDERID
+       var amt=post_data.TXNAMOUNT 
+       var mode=post_data.PAYMENTMODE
+       var bank=post_data.BANKNAME
+
        // verify the checksum
        var checksumhash = post_data.CHECKSUMHASH;
        // delete post_data.CHECKSUMHASH;
@@ -106,10 +114,83 @@ app.post('/paynow', [parseUrl, parseJson], (req, res) => {
   
              var _result = JSON.parse(response);
                if(_result.STATUS == 'TXN_SUCCESS') {
-                   res.send('payment sucess')
+                   res.send('<h1>Payment Successful</h1> <a href="./index.html">Back to Home...</a>')
+                   console.log(email)
+                   let transporter = nodemailer.createTransport({
+                    host: 'smtp.gmail.com',
+                    port: 587,
+                    secure: false, // true for 465, false for other ports
+                    auth: {
+                        user: 'thesparkfoundationdonation@gmail.com', // generated ethereal user
+                        pass: 'yourpassword'  // generated ethereal password
+                    },
+                    tls:{
+                      rejectUnauthorized:false
+                    }
+                  });
+                
+                  // setup email data with unicode symbols
+                  let mailOptions = {
+                      from: 'thesparkfoundationdonation@gmail.com', // sender address
+                      to: email, // list of receivers
+                      subject: 'Payment successfull', // Subject line
+                      text: 'ORDER_ID='+oid+' \n'+
+                      'AMOUNT='+amt+' \n'+ 
+                      'MODE_OF_PAYMENT='+mode+' \n'+
+                      'BANK_NAME='+bank+''
+                // plain text body
+                      //html: output // html body
+                  };
+                
+                  // send mail with defined transport object
+                  transporter.sendMail(mailOptions, (error, info) => {
+                      if (error) {
+                          return console.log(error);
+                      }
+                      console.log('Message sent: %s', info.messageId);   
+                      console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
+                
+                      res.render('contact', {msg:'Email has been sent'});
+                  });
+                  
                }else {
-                   res.send('payment failed')
+                   res.send('<h1>payment failed</h1> <a href="./index.html">Back to Home...</a>')
+                   let transporter = nodemailer.createTransport({
+                    host: 'smtp.gmail.com',
+                    port: 587,
+                    secure: false, // true for 465, false for other ports
+                    auth: {
+                        user: 'thesparkfoundationdonation@gmail.com', // generated ethereal user
+                        pass: 'yourpassword'  // generated ethereal password
+                    },
+                    tls:{
+                      rejectUnauthorized:false
+                    }
+                  });
+                
+                  // setup email data with unicode symbols
+                  let mailOptions = {
+                      from: 'thesparkfoundationdonation@gmail.com', // sender address
+                      to: email, // list of receivers
+                      subject: 'Payment Failed', // Subject line
+                      text: 'This message is to inform you that your transaction has failed due to some error', // plain text body
+                      //html: output // html body
+                  };
+                
+                  // send mail with defined transport object
+                  transporter.sendMail(mailOptions, (error, info) => {
+                      if (error) {
+                          return console.log(error);
+                      }
+                      console.log('Message sent: %s', info.messageId);   
+                      console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
+                
+                      res.render('contact', {msg:'Email has been sent'});
+                  });
                }
+               //setTimeout(function(){ res.redirect('/index.html');  }, 3000);
+
+             
              });
          });
   
@@ -118,5 +199,6 @@ app.post('/paynow', [parseUrl, parseJson], (req, res) => {
          post_req.end();
         });
        });
+     //  setTimeout(function(){ res.redirect('/');  }, 3000);
   })
   
