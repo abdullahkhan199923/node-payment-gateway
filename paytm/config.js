@@ -1,7 +1,10 @@
+const dotenv = require('dotenv').config()
+//dotenv.config()
 
 var PaytmConfig = {
-  mid: "EQwKke00322448145474",
-  key: "4qr6yi%Ucb8J%3C3",
+  mid: process.env.MID_PAYTM,
+  key: process.env.KEY_PAYTM,
   website: "WEBSTAGING"
 }
+console.log(PaytmConfig)
 module.exports.PaytmConfig = PaytmConfig
